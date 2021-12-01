@@ -1,0 +1,9 @@
+(defn day1 [ans a b c s]
+  (let [line (read-line)]
+    (if (nil? line)
+      ans
+      (let [line (Integer/parseInt line)]
+
+        ))
+    )
+  )
