@@ -1,7 +1,6 @@
 use std::io;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-#[derive(Debug)]
 struct Board {
     rows: Vec<u8>,
     cols: Vec<u8>,
@@ -26,9 +25,10 @@ fn main() {
     let to_x:Vec<u32> = s.trim_end().split(',').map(|x| x.parse().unwrap()).collect();
     let mut map = HashMap::new();
     for x in &to_x {
-        map.insert(x, HashMap::new());
+        map.insert(x, Vec::new());
     }
     let mut boards = Vec::new();
+    let mut remaining = HashSet::new();
     let mut k = 0;
 
     loop {
@@ -42,65 +42,34 @@ fn main() {
                 let x = x.parse::<u32>().unwrap();
                 sum += x;
                 if let Some(entry) = map.get_mut(&x) {
-                    entry.insert(k, (i, j));
+                    entry.push((k, i, j));
                 }
             }
         }
         boards.push(Board::new(sum));
+        remaining.insert(k);
         k += 1;
     }   
-    
-    let mut to_x = to_x.iter();
-    let mut removed = 100_000;
 
-    loop {
-        let x = to_x.next().unwrap();
-        for (k, (i, j)) in map.get(&x).unwrap() {
+    let n = k;
+    
+    'outer: 
+    for x in &to_x {
+        for (k, i, j) in map.get(&x).unwrap() {
             let board = &mut boards[*k];
             board.sum -= x;
             board.rows[*i] += 1;
             board.cols[*j] += 1;
             if (board.rows[*i] == 5) || (board.cols[*j] == 5) {
-                removed = *k;
-                println!("Part1: {}", board.sum * x);
-            }
-        }
-        if removed != 100_000 {
-            break;
-        }
-    }
-
-    let mut remaining = Vec::new();
-    for i in 0..boards.len() {
-        if i != removed {
-            remaining.push(i);
-        }
-    }
-
-    for x in to_x {
-        let mut new = Vec::new();
-        let tmp_map = map.get(&x).unwrap();
-        for k in &remaining {            
-            if let Some((i, j)) = tmp_map.get(&k) {
-                let board = &mut boards[*k];
-                board.sum -= x;
-                board.rows[*i] += 1;
-                board.cols[*j] += 1;
-                if (board.rows[*i] == 5) || (board.cols[*j] == 5) {
-                    removed = *k;
-                } else {
-                    new.push(*k);
+                remaining.remove(k);
+                if remaining.len() == n - 1 {
+                    println!("Part1: {}", board.sum * x);
+                } else if remaining.len() == 0 {
+                    println!("Part2: {}", board.sum * x);
+                    break 'outer;
                 }
-            } else {
-                new.push(*k);
+                
             }
-        }
-        if new.len() == 0 {
-            let board = &boards[removed];
-            println!("Part2: {} with score {}", removed, x*board.sum);
-            break;
-        } else {
-            remaining = new;
         }
     }
 }
