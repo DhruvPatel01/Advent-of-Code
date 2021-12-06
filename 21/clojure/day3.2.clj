@@ -20,6 +20,7 @@
 (defn one-major? [s e j]
   (<= j (quot (+ s e) 2)))
 
+
 (defn part2 [s e i t]
   (if (= s (- e t)) s
       (let [j (first-one s e i)]
