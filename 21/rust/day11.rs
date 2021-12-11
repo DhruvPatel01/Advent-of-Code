@@ -9,8 +9,10 @@ fn step(grid: &mut [[u32; 12]; 12]) -> u32 {
     
     for i in 1..=10 {
         for j in 1..=10 {
-            grid[i][j] += 1;
+            if grid[i][j] >= 10 {grid[i][j] = 1;}
+            else { grid[i][j] += 1; }
             if grid[i][j] == 10 {
+                flashed += 1;
                 q.push_back((i, j));
             }
         }
@@ -21,17 +23,9 @@ fn step(grid: &mut [[u32; 12]; 12]) -> u32 {
             for v in (j-1)..=(j+1) {
                 grid[u][v] += 1;
                 if grid[u][v] == 10 {
+                    flashed += 1;
                     q.push_back((u, v));
                 }
-            }
-        }
-    }
-
-    for i in 1..=10 {
-        for j in 1..=10 {
-            if grid[i][j] >= 10 {
-                grid[i][j] = 0;
-                flashed += 1;
             }
         }
     }
