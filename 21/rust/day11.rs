@@ -1,9 +1,9 @@
 use std::io;
 use std::collections::VecDeque;
 
-type Grid = Vec<Vec<u32>>;
+// type Grid = Vec<Vec<u32>>;
 
-fn step(grid: &mut Grid) -> u32 {
+fn step(grid: &mut [[u32; 12]; 12]) -> u32 {
     let mut q = VecDeque::new();
     let mut flashed = 0;
     
@@ -43,17 +43,13 @@ fn main() {
     let mut s = String::new();
     let sin = io::stdin();
     
-    let mut grid = Grid::with_capacity(12);
-    grid.push(vec![100; 12]);
-    loop {
+    let mut grid = [[100u32; 12]; 12];
+    for i in 1..=10 {
         if let Ok(0) = sin.read_line(&mut s) {break;}
-        let mut v = vec![100];
-        v.extend(s.trim_end().bytes().map(|x| (x - '0' as u8) as u32));
-        v.push(100);
-        grid.push(v);
+        let tmp: Vec<u32> = s.trim_end().bytes().map(|x| (x - '0' as u8) as u32).collect();
+        grid[i][1..=10].copy_from_slice(&tmp);
         s.clear();
     }
-    grid.push(vec![100; 12]);
 
     let mut part1 = 0;
     for i in 0.. {
