@@ -15,6 +15,11 @@ fn read_pt(end_points: &str) -> (usize, usize) {
     (x, y)
 }
 
+fn max(x: usize, x1: usize, x2: usize) -> usize {
+    if x1 >= x2 { if x1 > x {x1} else {x} }
+    else {if x2 > x {x2} else {x}}
+}
+
 fn main() {
     let mut s = String::new();
     let sin = io::stdin();
@@ -29,17 +34,8 @@ fn main() {
         let (mut x1, mut y1) = read_pt(end_points.next().unwrap());
         let (mut x2, mut y2) = read_pt(end_points.next().unwrap());
 
-        if x1 > max_x {
-            max_x = x1;
-        } else if x2 > max_x {
-            max_x = x2;
-        }
-
-        if y1 > max_y {
-            max_y = y1;
-        } else if x2 > max_y {
-            max_y = y2;
-        }
+        max_x = max(max_x, x1, x2);
+        max_y = max(max_y, y1, y2);
 
         if x1 > x2 || y1 > y2 {
             swap(&mut x1, &mut x2);

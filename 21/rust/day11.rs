@@ -12,18 +12,17 @@ fn step(grid: &mut [[u32; 12]; 12]) -> u32 {
             if grid[i][j] >= 10 {grid[i][j] = 1;}
             else { grid[i][j] += 1; }
             if grid[i][j] == 10 {
-                flashed += 1;
                 q.push_back((i, j));
             }
         }
     }
 
     while let Some((i, j)) = q.pop_front() {
+        flashed += 1;
         for u in (i-1)..=(i+1) {
             for v in (j-1)..=(j+1) {
                 grid[u][v] += 1;
                 if grid[u][v] == 10 {
-                    flashed += 1;
                     q.push_back((u, v));
                 }
             }
