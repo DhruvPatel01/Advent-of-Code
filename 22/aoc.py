@@ -14,51 +14,11 @@
 #     name: python3
 # ---
 
-# # Helpers
-
-import re
-from collections import Counter, defaultdict, deque
-import itertools
-from tqdm.autonotebook import tqdm
+# %load_ext autoreload
+# %autoreload 2
 
 
-# +
-# A lot of this code is inspired from Peter Norvig's style.
-
-def id(x): return x
-
-def mapt(fun, it): return tuple(map(fun, it))
-def first(it, pred): return next(filter(pred, it))
-def parse_uint(line): return mapt(int, re.findall(r'\d+', line))
-def  parse_int(line): return mapt(int, re.findall(r'-?\d+', line))
-
-def prod(it):
-    r = 1
-    for x in it: r *= x
-    return r
-
-        
-def read(day, process=id, split='\n'):
-    with open(f'./inputs/{day}.txt') as f:
-        return mapt(process, f.read().rstrip('\n').split(split))
-    
-def partition_into(lst: list, when, preprocess=id, postprocess=id) -> list[list]:
-    res = []
-    for item in map(preprocess, lst):
-        if when(item): 
-            yield res
-            res = []
-        else: 
-            res.append(postprocess(item))
-
-def partition(inp, segment_length):
-    for i in range(0, len(inp), segment_length):
-        yield inp[i:i+segment_length]
-
-def windows(inp, n):
-    for i in range(len(inp)):
-        yield inp[i:i+n]
-
+from helper import *
 
 # + [markdown] tags=[]
 # # Day 1
@@ -125,11 +85,11 @@ def split_half (x):
 common = [x&y for x, y in map(split_half, input)]
 # -
 
-sum(sum(map(priority.get, c)) for c in common)
+asset = sum(sum(map(priority.get, c)) for c in common) == 7848
 
 groups = [input[i:i+3] for i in range(0, len(input), 3)]
 groups = [list(set(x)&set(y)&set(z))[0] for x, y, z in groups]
-sum(map(priority.get, groups))
+assert sum(map(priority.get, groups)) == 2616
 
 # # Day 4
 
@@ -632,8 +592,9 @@ assert (input.index([[2]])+1)*(input.index([[6]])+1) == 24477
 
 input = read('14', process=parse_uint)
 
-
 # +
+blocked = set()
+
 def block_hline(y, x1, x2):
     if x1 > x2: x1, x2 = x2, x1
     for x in range(x1, x2+1): blocked.add((x, y))
@@ -643,25 +604,12 @@ def block_vline(x, y1, y2):
     for y in range(y1, y2+1): blocked.add((x, y))                                      
 
 def init_day14():
+    blocked.clear()
     for line in input:
-        it = partition(line, 2)
-        xx, yy = next(it)
-        for x, y in it:
-            if x == xx:
-                block_vline(x, yy, y)
-            else:
-                block_hline(y, xx, x)
-            xx, yy = x, y
-    
-
-def in_abyss1(x, y):
-    max_y = max(p[1] for p in blocked)
-    return y > max_y
-
-def is_unblocked1(x, y):
-    return (x, y) not in blocked
-    
-
+        for (xx, yy), (x, y) in windows(partition(line, 2), 2):
+            if x == xx: block_vline(x, yy, y)
+            else      : block_hline(y, xx, x)
+        
 def simulate(abyss, is_unblocked):
     count = 0
     x, y = (500, 0)
@@ -686,25 +634,13 @@ def simulate(abyss, is_unblocked):
 
 # -
 
-blocked = set()
 init_day14()
-simulate(in_abyss1, is_unblocked1)
+Y = max(p[1] for p in blocked)
+assert simulate(lambda x, y: y > Y, lambda x, y: (x, y) not in blocked) == 779
 
-
-# +
-def in_abyss2(x, y):
-    return abs(x-500) > y
-
-def is_unblocked2(x, y):
-    if y == Y: return False
-    return is_unblocked1(x, y)
-
-
-# -
-
-blocked = set()
 init_day14()
 Y = max(p[1] for p in blocked)+2
-simulate(in_abyss2, is_unblocked2)
+assert simulate(abyss=lambda x, y: abs(x-500) > y, 
+                is_unblocked=lambda x, y: not(y == Y or (x, y) in blocked)) == 27426
 
 
