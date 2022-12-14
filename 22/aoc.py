@@ -630,4 +630,81 @@ assert (input.index([[2]])+1)*(input.index([[6]])+1) == 24477
 
 # # Day 14
 
+input = read('14', process=parse_uint)
+
+
+# +
+def block_hline(y, x1, x2):
+    if x1 > x2: x1, x2 = x2, x1
+    for x in range(x1, x2+1): blocked.add((x, y))
+    
+def block_vline(x, y1, y2):
+    if y1 > y2: y1, y2 = y2, y1
+    for y in range(y1, y2+1): blocked.add((x, y))                                      
+
+def init_day14():
+    for line in input:
+        it = partition(line, 2)
+        xx, yy = next(it)
+        for x, y in it:
+            if x == xx:
+                block_vline(x, yy, y)
+            else:
+                block_hline(y, xx, x)
+            xx, yy = x, y
+    
+
+def in_abyss1(x, y):
+    max_y = max(p[1] for p in blocked)
+    return y > max_y
+
+def is_unblocked1(x, y):
+    return (x, y) not in blocked
+    
+
+def simulate(abyss, is_unblocked):
+    count = 0
+    x, y = (500, 0)
+    while True:
+        if abyss(x, y):
+            break
+        elif is_unblocked(x, y+1):
+            y = y+1
+        elif is_unblocked(x-1, y+1):
+            x, y = x-1, y+1
+        elif is_unblocked(x+1, y+1):
+            x, y = x+1, y+1
+        else:
+            blocked.add((x, y))
+            count += 1
+            x, y = 500, 0
+           
+            if (x, y) in blocked:
+                break
+    return count
+
+
+# -
+
+blocked = set()
+init_day14()
+simulate(in_abyss1, is_unblocked1)
+
+
+# +
+def in_abyss2(x, y):
+    return abs(x-500) > y
+
+def is_unblocked2(x, y):
+    if y == Y: return False
+    return is_unblocked1(x, y)
+
+
+# -
+
+blocked = set()
+init_day14()
+Y = max(p[1] for p in blocked)+2
+simulate(in_abyss2, is_unblocked2)
+
 
