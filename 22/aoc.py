@@ -649,7 +649,7 @@ input = read('15', parse_int)
 
 
 @numba.njit
-def find_interesting_locations(input, target_row, MN=0, MX=4000000+1):
+def find_interesting_locations(input, target_row, MN, MX):
     segments = []
     for x, y, x1, y1 in input:
         r = abs(x-x1)+abs(y-y1)
@@ -657,7 +657,7 @@ def find_interesting_locations(input, target_row, MN=0, MX=4000000+1):
             width = r - abs(y-target_row)
             segments.append((max(MN, x-width), min(MX, x+width)))
         
-        if MN <= y1 <= MX:
+        if MN <= y1 < MX:
             segments.append((y1, y1))
     
     segments.sort()
@@ -683,7 +683,7 @@ assert int(find_interesting_locations(input, 2000000, MN, MX)[0]) == 5256611
 @numba.njit
 def find_discontinuity(input):
     for row in range(0, 4000001):
-        _, dis = find_interesting_locations(input, row, 0, 4000001)
+        _, dis = find_interesting_locations(input, row, 0, 4000_000)
         if dis is not None:
             return dis*4000000+row
 
