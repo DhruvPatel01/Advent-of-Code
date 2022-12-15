@@ -643,4 +643,53 @@ Y = max(p[1] for p in blocked)+2
 assert simulate(abyss=lambda x, y: abs(x-500) > y, 
                 is_unblocked=lambda x, y: not(y == Y or (x, y) in blocked)) == 27426
 
+# # Day 15
+
+input = read('15', parse_int)
+
+
+@numba.njit
+def find_interesting_locations(input, target_row, MN=0, MX=4000000+1):
+    segments = []
+    for x, y, x1, y1 in input:
+        r = abs(x-x1)+abs(y-y1)
+        if target_row-r <= y <= target_row+r:
+            width = r - abs(y-target_row)
+            segments.append((max(MN, x-width), min(MX, x+width)))
+        
+        if MN <= y1 <= MX:
+            segments.append((y1, y1))
+    
+    segments.sort()
+    answer = 0
+    L, U = segments[0]
+    breakpt = None
+    for l, u in segments[1:]:
+        if l <= U+1:
+            U = max(u, U)
+        else:
+            breakpt = U+1
+            answer += (U-L)
+            L, U = l, u
+    answer += (U-L)
+    return answer, breakpt
+
+
+MN = float('-inf')
+MX = float('inf')
+assert int(find_interesting_locations(input, 2000000, MN, MX)[0]) == 5256611
+
+
+@numba.njit
+def find_discontinuity(input):
+    for row in range(0, 4000001):
+        _, dis = find_interesting_locations(input, row, 0, 4000001)
+        if dis is not None:
+            return dis*4000000+row
+
+
+assert find_discontinuity(input) == 13337919186981
+
+# # Day 16
+
 
