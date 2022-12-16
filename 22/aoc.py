@@ -690,6 +690,87 @@ def find_discontinuity(input):
 
 assert find_discontinuity(input) == 13337919186981
 
+
 # # Day 16
+
+# +
+def parse_nodes(line):
+    return re.findall(r'[A-Z]{2}', line)
+
+input = read('16', parse_nodes)
+
+graph = defaultdict(set)
+for u, *vs in input:
+    graph[u].update(vs)
+
+flow_rates = {i[0]: j[0] for i, j in zip(input, read('16', parse_uint))}
+
+# +
+valid = set(sorted(k for k, v in flow_rates.items() if v > 0))
+# valid = {'HH', 'DD'}
+subsets = set()
+for i in range(1, len(valid)+1):
+    subsets.update(itertools.combinations(valid, i))
+
+nextlevel = defaultdict(int)
+for subset in subsets:
+    for s in subset:
+        nextlevel[s, subset] = flow_rates[s]
+    
+for level in tqdm(range(28, -1, -1)):
+    current = defaultdict(int)
+    for subset in subsets:
+        for s in subset:
+            val1 = nextlevel[s, tuple(t for t in subset if t!=s)]
+            val1 += (30-level-1)*flow_rates[s]
+            
+            val2 = max(nextlevel[t, subset] for t in graph[s])
+            current[s, subset] = max(val1, val2)
+        for s in set(graph) - set(subset):
+            current[s, subset] = max(nextlevel[t, subset] for t in graph[s])
+    nextlevel = current
+    del current
+
+# -
+
+level
+
+max(v for k, v in nextlevel.items() if k[0] == 'AA')
+
+# +
+valid = set(sorted(k for k, v in flow_rates.items() if v > 0))
+all_nodes = sorted(graph)
+
+subsets = set()
+for i in range(1, len(valid)+1):
+    subsets.update(itertools.combinations(valid, i))
+
+nextlevel = defaultdict(int)
+for subset in subsets:
+    for s, t in itertools.combinations(all_nodes, 2):
+        nextlevel[(s, t), subset] = flow_rates[s]+flow_rates[t]
+            
+    
+for level in tqdm(range(24, -1, -1)):
+    current = defaultdict(int)
+    for s, t in itertools.combinations(all_nodes, 2):
+        for subset in subsets:
+            match s in subset, t in subset:
+                case False, False:
+                    pass
+                case False, True:
+                    pass
+                case True, False:
+                    pass
+                case True, True:
+                    pass
+            
+            
+
+# -
+
+list(itertools.combinations([1, 2, 3, 4], 2))
+
+len(nextlevel)
 
 
