@@ -2,7 +2,9 @@ import re
 from collections import Counter, defaultdict, deque
 import itertools
 from tqdm.autonotebook import tqdm
+import numpy as np
 import numba
+
 
 # A lot of this code is inspired from Peter Norvig's style.
 

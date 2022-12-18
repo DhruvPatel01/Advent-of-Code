@@ -690,8 +690,10 @@ def find_discontinuity(input):
 
 assert find_discontinuity(input) == 13337919186981
 
-
 # # Day 16
+
+import itertools
+
 
 # +
 def parse_nodes(line):
@@ -733,44 +735,302 @@ for level in tqdm(range(28, -1, -1)):
 
 # -
 
-level
-
 max(v for k, v in nextlevel.items() if k[0] == 'AA')
+
+
 
 # +
 valid = set(sorted(k for k, v in flow_rates.items() if v > 0))
-all_nodes = sorted(graph)
+idx = {k:i for i, k in enumerate(valid)}
+for k in set(graph)-valid:
+    idx[k] = len(idx)
+valid = sorted([idx[v] for v in valid])
+all_nodes = np.arange(len(graph)).astype(int)
 
+graph_new = [[255]*5 for i in range(len(graph))]
+for node in graph:
+    u = idx[node]
+    for i, nb in enumerate(graph[node]):
+        graph_new[u][i] = idx[nb]
+
+graph_new = np.array(graph_new)
+
+
+# +
 subsets = set()
 for i in range(1, len(valid)+1):
     subsets.update(itertools.combinations(valid, i))
-
-nextlevel = defaultdict(int)
-for subset in subsets:
-    for s, t in itertools.combinations(all_nodes, 2):
-        nextlevel[(s, t), subset] = flow_rates[s]+flow_rates[t]
-            
     
+valid = set(valid)
+# -
+
+flow_rates_np = np.zeros_like(all_nodes)
+for node, fl in flow_rates.items():
+    flow_rates_np[idx[node]] = fl
+
+
+# +
+def get_subset_idx(subset):
+    r = 0
+    for i in subset:
+        r |= 1 << i
+    return r
+        
+def get_idx_into(s, t, subset):
+    r = get_subset_idx(subset)
+    r |= s << 15
+    r |= t << (15+6)
+    return r
+
+
+# +
+@numba.njit
+def fill_good_good_pos(level, subset_idx, subset, graph, flow_rate, nextlevel, current,):
+    
+    for s in subset:
+        for t in subset:
+            if s >= t: continue
+            
+            new = 0
+            for u in subset:
+                if u != s and u != t:
+                    new |= 1 << u
+                        
+            opt1 = (26-level-1)*(flow_rates[s]+flow_rates[t])
+            opt1 += nextlevel[new | (s << 15) | (t << 21)]
+            
+            new = 0
+            for u in subset:
+                if u != s: new |= 1 << u
+            opt2 = (26-level-1)*(flow_rates[s])
+            mx = 0
+            for tt in graph[t]:
+                if tt == 255: continue
+                mx = max(nextlevel[new | (s << 15) | (tt << 21)], mx)
+            opt2 += mx
+            
+            new = 0
+            for u in subset:
+                if u != t: new |= 1 << u
+            
+            opt3 = (26-level-1)*(flow_rates[t])
+            for ss in graph[s]:
+                if ss == 255: continue
+                mx = max(nextlevel[new | (ss << 15) | (t << 21)], mx)
+                
+            mx = 0
+            for ss in graph[s]:
+                if ss==255: break
+                for tt in graph[t]:
+                    if tt == 255: break
+                    mx = max(mx, nextlevel[subset_idx | (ss << 15) | (tt << 21)])
+            opt4 = mx
+            
+            current[subset_idx | (s << 15) | (t << 21)] = max(opt1, opt2, opt3, opt4)
+            current[subset_idx | (t << 15) | (s << 21)] = max(opt1, opt2, opt3, opt4)
+
+@numba.njit
+def fill_bad_bad_pos(subset_idx, graph, others, nextlevel, current):
+    for s in others:
+        for t in others:
+            mx = 0
+            for ss in graph[s]:
+                if ss == 255: break
+                for tt in graph[t]:
+                    if tt == 255: break
+                    mx = max(mx, nextlevel[subset_idx | (ss<<15) | (tt<<21)])          
+            
+            current[subset_idx | (s << 15) |  (t << 21)] = mx
+            
+@numba.njit
+def fill_good_bad_pos(level, flow_rates_np, graph, subset_idx, subset, others, nextlevel, current):
+    for s in subset:
+        new = 0
+        for t in subset:
+            if t != s: new |= 1 << t
+        opt = (26-level-1)*(flow_rates_np[s])
+        
+        for t in others:
+            mx = 0
+            for tt in graph[t]:
+                if tt == 255: break
+                mx = max(nextlevel[new | (s << 15) | (tt << 21)], mx)
+            opt1 = opt + mx
+
+            mx = 0
+            for ss in graph[s]:
+                if ss == 255: break
+                for tt in graph[t]:
+                    if tt == 255: break
+                    mx = max(mx, nextlevel[subset_idx | (ss << 15) | (tt << 21)])
+                    
+            current[subset_idx | (s << 15) | (t << 21)] = max(opt1, mx)
+            current[subset_idx | (t << 15) | (s << 21)] = max(opt1, mx)
+
+
+# +
+nextlevel = np.zeros(2**(6+6+15), dtype=np.uint32)
+for subset in tqdm(subsets):
+    subset_idx = get_subset_idx(subset)
+    for s, t in itertools.combinations(subset, 2):
+        nextlevel[subset_idx | (s << 15) | (t << 21)] = flow_rates_np[s]+flow_rates_np[t]
+        nextlevel[subset_idx | (t << 15) | (s << 21)] = flow_rates_np[s]+flow_rates_np[t]
+                            
+        
+    for s in subset:
+        nextlevel[subset_idx | (s << 15) | (s << 21)] = flow_rates_np[s]
+        
+        for t in set(all_nodes)-set(subset):
+            nextlevel[subset_idx | (s << 15) | (t << 21)] = flow_rates_np[s]
+            nextlevel[subset_idx | (t << 15) | (s << 21)] = flow_rates_np[s]
+
+            
 for level in tqdm(range(24, -1, -1)):
-    current = defaultdict(int)
-    for s, t in itertools.combinations(all_nodes, 2):
-        for subset in subsets:
-            match s in subset, t in subset:
-                case False, False:
-                    pass
-                case False, True:
-                    pass
-                case True, False:
-                    pass
-                case True, True:
-                    pass
+    current = np.zeros(2**(6+6+15), dtype=np.uint32)
+    for subset in tqdm(subsets):
+        others = np.array(list(set(all_nodes) - set(subset)))
+        subset_idx = get_subset_idx(subset)
+        for s, t in itertools.combinations(subset, 2):
+            new = get_subset_idx(u for u in subset if u != s and u != t)
+            opt1 = (26-level-1)*(flow_rates_np[s]+flow_rates_np[t])
+            opt1 += nextlevel[new | (s << 15) | (t << 21)]
             
+            new = get_subset_idx(u for u in subset if u != s)
+            opt2 = (26-level-1)*(flow_rates_np[s])
+            opt2 += max(nextlevel[new | (s << 15) | (tt << 21)] for tt in graph_new[t] if tt < 255)
             
+            new = get_subset_idx(u for u in subset if u != t)
+            opt3 = (26-level-1)*(flow_rates_np[t])
+            opt3 += max(nextlevel[new | (ss << 15) | (t << 21)] for ss in graph_new[s] if ss < 255)
+            
+            opt4 = max(nextlevel[subset_idx | (ss << 15) | (tt << 21)]
+                       for ss in graph_new[s] for tt in graph_new[t] if tt < 255 and ss < 255)
+            
+            current[subset_idx | (s << 15) | (t << 21)] = max(opt1, opt2, opt3, opt4)
+            current[subset_idx | (t << 15) | (s << 21)] = max(opt1, opt2, opt3, opt4)
+            
+        for s in subset:
+            new = get_subset_idx(u for u in subset if u != s)
+            opt1 = (26-level-1)*(flow_rates_np[s])
+            opt1 += max(nextlevel[new | (s << 15) | (tt << 21)] for tt in graph_new[s] if tt < 255)
+            opt2 = max(nextlevel[subset_idx | (ss << 15) | (tt << 21)]
+                       for ss in graph_new[s] for tt in graph_new[s] if tt < 255 and ss < 255)             
+            current[subset_idx | (s << 15) | (s << 21)] = max(opt1, opt2)
+            
+        fill_good_bad_pos(level, flow_rates_np, graph_new, subset_idx, np.array(subset), others, nextlevel, current)
+        fill_bad_bad_pos(subset_idx, graph_new, others, nextlevel, current)
+        
+        
+    nextlevel = current
+    del current
 
 # -
 
-list(itertools.combinations([1, 2, 3, 4], 2))
+max(nextlevel[get_idx_into(idx['AA'], idx['AA'], subset)] for subset in subsets)
 
-len(nextlevel)
+# That was wrong. Sigh:(
+
+# # Day 18
+
+import sys
+sys.setrecursionlimit(10000)
+
+input = sorted(read('18', parse_uint))
+
+
+def build_graph(input):
+    graph = {k: set() for k in sorted(input)}
+    
+    for node in graph:
+        x,y,z = node
+        adj = {(x-1, y, z), (x+1, y, z),
+               (x, y-1, z), (x, y+1, z),
+               (x, y, z-1), (x, y, z+1)}
+        adj = {u for u in adj if u in graph}
+        graph[node].update(adj)
+    
+    return graph
+
+
+def run_dfs(graph, visited, node) -> int:
+    visited.add(node)
+    res = 6 - len(graph[node])
+    for v in graph[node]:
+        if v not in visited:
+            res += run_dfs(graph, visited, v)
+    return res
+
+
+graph = build_graph(input)
+
+part1 = 0
+visited = set()
+for node in graph:
+    if node not in visited:
+        part1 += run_dfs(graph, visited, node)
+
+
+assert part1 == 4340
+
+min_x = min(node[0] for node in graph)-1
+min_y = min(node[1] for node in graph)-1
+min_z = min(node[2] for node in graph)-1
+max_x = max(node[0] for node in graph)+1
+max_y = max(node[1] for node in graph)+1
+max_z = max(node[2] for node in graph)+1
+
+
+# +
+eps = set()
+for y in range(min_y, max_y+1):
+    for z in range(min_z, max_z+1):
+        pt1 = (min_x, y, z)
+        pt2 = (max_x, y, z)
+        eps.add(pt1)
+        eps.add(pt2)
+        
+for x in range(min_x, max_x+1):
+    for z in range(min_z, max_z+1):
+        pt1 = (x, min_y, z)
+        pt2 = (x, max_y, z)
+        eps.add(pt1)
+        eps.add(pt2)
+        
+for x in range(min_x, max_x+1):
+    for y in range(min_y, max_y+1):
+        pt1 = (x, y, min_z)
+        pt2 = (x, y, max_z)
+        eps.add(pt1)
+        eps.add(pt2)
+
+
+# -
+
+def run_dfs2(graph, visited, node) -> int:
+    x, y, z = node
+    if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
+        return 0
+    visited.add(node)
+    adj = {(x-1, y, z), (x+1, y, z),
+           (x, y-1, z), (x, y+1, z),
+           (x, y, z-1), (x, y, z+1)}
+    
+    res = 0
+    for u in adj:
+        if u in graph: res += 1
+        elif u not in visited:
+            res += run_dfs2(graph, visited, u)
+    return res
+
+
+part2 = 0
+visited = set()
+for ep in eps:
+    if ep not in visited:
+        part2 += run_dfs2(graph, visited, ep)
+
+assert part2 == 2468
+
+# # Day 19
 
 
