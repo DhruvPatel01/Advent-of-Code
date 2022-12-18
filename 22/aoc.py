@@ -932,24 +932,17 @@ max(nextlevel[get_idx_into(idx['AA'], idx['AA'], subset)] for subset in subsets)
 
 # # Day 18
 
-import sys
-sys.setrecursionlimit(10000)
-
 input = sorted(read('18', parse_uint))
 
 
-def build_graph(input):
-    graph = {k: set() for k in sorted(input)}
-    
-    for node in graph:
-        x,y,z = node
-        adj = {(x-1, y, z), (x+1, y, z),
-               (x, y-1, z), (x, y+1, z),
-               (x, y, z-1), (x, y, z+1)}
-        adj = {u for u in adj if u in graph}
-        graph[node].update(adj)
-    
-    return graph
+def neighbors(node):
+    x, y, z = node
+    yield (x-1, y, z)
+    yield (x+1, y, z)
+    yield (x, y-1, z) 
+    yield (x, y+1, z)
+    yield (x, y, z-1)
+    yield (x, y, z+1)
 
 
 def run_dfs(graph, visited, node) -> int:
@@ -961,7 +954,9 @@ def run_dfs(graph, visited, node) -> int:
     return res
 
 
-graph = build_graph(input)
+graph = {k: set() for k in input}
+for node in graph:
+    graph[node].update({u for u in neighbors(node) if u in graph})
 
 part1 = 0
 visited = set()
@@ -972,6 +967,7 @@ for node in graph:
 
 assert part1 == 4340
 
+# +
 min_x = min(node[0] for node in graph)-1
 min_y = min(node[1] for node in graph)-1
 min_z = min(node[2] for node in graph)-1
@@ -979,48 +975,45 @@ max_x = max(node[0] for node in graph)+1
 max_y = max(node[1] for node in graph)+1
 max_z = max(node[2] for node in graph)+1
 
-
-# +
 eps = set()
 for y in range(min_y, max_y+1):
     for z in range(min_z, max_z+1):
-        pt1 = (min_x, y, z)
-        pt2 = (max_x, y, z)
-        eps.add(pt1)
-        eps.add(pt2)
+        eps.add((min_x, y, z))
+        eps.add((max_x, y, z))
         
 for x in range(min_x, max_x+1):
     for z in range(min_z, max_z+1):
-        pt1 = (x, min_y, z)
-        pt2 = (x, max_y, z)
-        eps.add(pt1)
-        eps.add(pt2)
+        eps.add((x, min_y, z))
+        eps.add((x, max_y, z))
         
 for x in range(min_x, max_x+1):
     for y in range(min_y, max_y+1):
-        pt1 = (x, y, min_z)
-        pt2 = (x, y, max_z)
-        eps.add(pt1)
-        eps.add(pt2)
+        eps.add((x, y, min_z))
+        eps.add((x, y, max_z))
 
 
 # -
 
+
 def run_dfs2(graph, visited, node) -> int:
-    x, y, z = node
-    if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
-        return 0
     visited.add(node)
-    adj = {(x-1, y, z), (x+1, y, z),
-           (x, y-1, z), (x, y+1, z),
-           (x, y, z-1), (x, y, z+1)}
+    stack = [(node, neighbors(node))]
     
-    res = 0
-    for u in adj:
-        if u in graph: res += 1
-        elif u not in visited:
-            res += run_dfs2(graph, visited, u)
-    return res
+    acc = 0
+    while stack:
+        node, adj = stack[-1]
+        for u in adj:
+            if u in graph: acc += 1
+            elif u not in visited:
+                x, y, z = u
+                if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
+                    continue
+                visited.add(u)
+                stack.append((u, neighbors(u)))
+                break
+        else:
+            stack.pop()
+    return acc
 
 
 part2 = 0
@@ -1032,5 +1025,7 @@ for ep in eps:
 assert part2 == 2468
 
 # # Day 19
+
+part2
 
 

@@ -139,3 +139,29 @@ for target_row in tqdm(range(MX)):
     if u < MX:
         print("This is the row", target_row)
         hi
+
+        
+## Day 18
+
+### Recursive part 2
+
+### needed to increase the recursion depth
+
+import sys
+sys.setrecursionlimit(10000)
+
+def run_dfs2(graph, visited, node) -> int:
+    x, y, z = node
+    if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
+        return 0
+    visited.add(node)
+    adj = {(x-1, y, z), (x+1, y, z),
+           (x, y-1, z), (x, y+1, z),
+           (x, y, z-1), (x, y, z+1)}
+    
+    res = 0
+    for u in adj:
+        if u in graph: res += 1
+        elif u not in visited:
+            res += run_dfs2(graph, visited, u)
+    return res
