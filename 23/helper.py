@@ -22,8 +22,12 @@ def prod(it):
 
         
 def read(day, process=id, split='\n'):
-    with open(f'./inputs/{day}.txt') as f:
-        return mapt(process, f.read().rstrip('\n').split(split))
+    if isinstance(day, int):
+       with open(f'./inputs/{day}.txt') as f:
+           data = f.read().rstrip('\n')
+    else:
+        data = day.rstrip('\n')
+    return mapt(process, data.split(split))
     
 def partition_into(lst: list, when, preprocess=id, postprocess=id) -> list[list]:
     res = []
