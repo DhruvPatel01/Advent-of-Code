@@ -30,7 +30,7 @@ def main():
     cookies = {"session": cookie}
     content = requests.get(f"https://adventofcode.com/{year}/day/{day}/input", headers=headers, cookies=cookies)
 
-    os.makedirs(os.path.basename(target_file), exist_ok=True)
+    os.makedirs(os.path.dirname(target_file), exist_ok=True)
     with open(target_file, "w") as f:
         f.write(content.text)
     
